@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from services.delivery_assistant.app.agents.delivery_agent import (
     DELIVERY_SYSTEM_PROMPT,
     is_delivery_related,
+    is_live_delivery_data_query,
     is_nutrition_query,
 )
 from services.delivery_assistant.app.config import settings
@@ -21,6 +22,12 @@ router = APIRouter()
 OUT_OF_SCOPE_REPLY = (
     "I'm the food ordering and delivery assistant. I can help with restaurants, "
     "meals, menus, delivery, pickup, food orders, and food nutrition questions."
+)
+
+LIVE_DELIVERY_DATA_UNAVAILABLE_REPLY = (
+    "I can't check live restaurant listings, menus, prices, delivery fees, "
+    "or order status yet because the delivery backend is not connected. "
+    "I won't guess or make up that information."
 )
 
 NO_NUTRITION_RESULTS_REPLY = (
@@ -66,6 +73,9 @@ async def chat(request: DeliveryChatRequest) -> DeliveryChatResponse:
         return DeliveryChatResponse(
             message=_format_nutrition_results(request.message, results)
         )
+
+    if is_live_delivery_data_query(request.message):
+        return DeliveryChatResponse(message=LIVE_DELIVERY_DATA_UNAVAILABLE_REPLY)
 
     client = OllamaClient(
         base_url=settings.ollama_base_url,
