@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from services.store_assistant.app.agents.store_agent import (
     STORE_SYSTEM_PROMPT,
+    is_live_store_data_query,
     is_store_related,
 )
 from services.store_assistant.app.config import settings
@@ -20,10 +21,20 @@ OUT_OF_SCOPE_REPLY = (
 )
 
 
+LIVE_STORE_DATA_UNAVAILABLE_REPLY = (
+    "I can't check live product listings, prices, stock, discounts, or branch "
+    "availability yet because the store backend is not connected. "
+    "I won't guess or make up that information."
+)
+
+
 @router.post("/chat", response_model=StoreChatResponse)
 async def chat(request: StoreChatRequest) -> StoreChatResponse:
     if not is_store_related(request.message):
         return StoreChatResponse(message=OUT_OF_SCOPE_REPLY)
+
+    if is_live_store_data_query(request.message):
+        return StoreChatResponse(message=LIVE_STORE_DATA_UNAVAILABLE_REPLY)
 
     client = OllamaClient(
         base_url=settings.ollama_base_url,
