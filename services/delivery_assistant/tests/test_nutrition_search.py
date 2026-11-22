@@ -16,6 +16,7 @@ def test_nutrition_queries_are_in_delivery_scope():
 
 def test_live_restaurant_queries_are_not_sent_to_the_llm():
     assert is_live_delivery_data_query("what restaurants are available?")
+    assert is_live_delivery_data_query("what the restaurants available in the website")
     assert is_live_delivery_data_query("شو المطاعم الموجودة؟")
 
 
