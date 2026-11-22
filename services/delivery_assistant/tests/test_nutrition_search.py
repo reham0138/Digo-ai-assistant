@@ -1,5 +1,6 @@
 from services.delivery_assistant.app.agents.delivery_agent import (
     is_delivery_related,
+    is_live_delivery_data_query,
     is_nutrition_query,
 )
 from services.delivery_assistant.app.integrations.nutrition_search import (
@@ -11,6 +12,11 @@ def test_nutrition_queries_are_in_delivery_scope():
     assert is_nutrition_query("How many calories are in shawarma?")
     assert is_nutrition_query("كم سعرة حرارية في الفلافل؟")
     assert is_delivery_related("calories in a cheeseburger")
+
+
+def test_live_restaurant_queries_are_not_sent_to_the_llm():
+    assert is_live_delivery_data_query("what restaurants are available?")
+    assert is_live_delivery_data_query("شو المطاعم الموجودة؟")
 
 
 def test_unrelated_queries_remain_out_of_scope():
