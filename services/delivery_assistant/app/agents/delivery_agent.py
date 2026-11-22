@@ -53,9 +53,12 @@ _LIVE_DELIVERY_TERMS = (
     "available restaurants", "restaurants available", "list restaurants",
     "show restaurants", "nearby restaurants", "restaurant list", "menu price",
     "price of the menu", "delivery fee", "delivery cost", "track my order",
-    "order status", "where is my order", "available menu", "المطاعم المتاحة",
+    "order status", "where is my order", "available menu", "restaurants are available",
+    "which restaurants", "what restaurants", "restaurants on the website",
+    "show menu", "menu of", "what is on the menu", "المطاعم المتاحة",
     "المطاعم الموجودة", "اعرض المطاعم", "عرض المطاعم", "قائمة المطاعم",
-    "مطاعم موجودة", "مطاعم متاحة", "المنيو المتاح", "أسعار المنيو",
+    "مطاعم موجودة", "مطاعم متاحة", "شو المطاعم", "وين المطاعم",
+    "المنيو المتاح", "أسعار المنيو", "عرض المنيو", "قائمة الطعام المتاحة",
     "سعر التوصيل", "أجرة التوصيل", "حالة الطلب", "تتبع الطلب", "وين طلبي",
 )
 
