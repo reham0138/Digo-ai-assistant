@@ -49,6 +49,23 @@ def is_nutrition_query(message: str) -> bool:
     return any(term in normalized for term in _NUTRITION_TERMS)
 
 
+_LIVE_DELIVERY_TERMS = (
+    "available restaurants", "restaurants available", "list restaurants",
+    "show restaurants", "nearby restaurants", "restaurant list", "menu price",
+    "price of the menu", "delivery fee", "delivery cost", "track my order",
+    "order status", "where is my order", "available menu", "المطاعم المتاحة",
+    "المطاعم الموجودة", "اعرض المطاعم", "عرض المطاعم", "قائمة المطاعم",
+    "مطاعم موجودة", "مطاعم متاحة", "المنيو المتاح", "أسعار المنيو",
+    "سعر التوصيل", "أجرة التوصيل", "حالة الطلب", "تتبع الطلب", "وين طلبي",
+)
+
+
+def is_live_delivery_data_query(message: str) -> bool:
+    """Detect requests that require the not-yet-connected delivery backend."""
+    normalized = message.casefold().strip()
+    return any(term in normalized for term in _LIVE_DELIVERY_TERMS)
+
+
 def is_delivery_related(message: str) -> bool:
     """Allow delivery topics and narrowly scoped food-nutrition questions."""
     normalized = message.casefold().strip()
