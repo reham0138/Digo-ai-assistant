@@ -1,21 +1,37 @@
 # Digo AI Assistant
 
-A local-first starter with one reusable AI core and independently runnable Store and Delivery assistant services. The goal is to reuse the core in future projects by supplying a different system prompt and project-specific tools.
+A local-first starter with one reusable AI core and independently runnable Store and Delivery assistant services. Each service has a narrow role, its own policy, and only its own integrations.
 
 ## Architecture
 
 - `shared/ai_core`: reusable Ollama client, conversation models, prompt loader, tool registry, response validation, and `AssistantRuntime`.
-- `services/store_assistant`: FastAPI service with store-specific instructions and API contracts.
-- `services/delivery_assistant`: FastAPI service with delivery-specific instructions and API contracts.
-- Both services can use the same local Ollama server. Their prompts, routes, and business integrations remain separate.
+- `services/store_assistant`: shopping and product-advice assistant.
+- `services/delivery_assistant`: food ordering and delivery assistant, with a focused web-search tool for food nutrition questions.
 
-## Current scope
+Both services can use the same local Ollama server. Their prompts, routes, and business integrations remain separate.
+
+## Current capabilities and limits
 
 Both services expose:
 - `GET /health` for a health check.
-- `POST /chat` for a prompt-configured Ollama response.
+- `POST /chat` for assistant responses.
 
-The chat runtime accepts a bounded history supplied by the caller (up to 12 messages). It does not persist conversations between requests. The Store semantic-search and Delivery restaurant-search integrations are still placeholders; recommendations and operational facts are not retrieved from real project data yet.
+The chat runtime accepts a bounded history supplied by the caller (up to 12 messages). It does not persist conversations between requests.
+
+### Store Assistant
+
+- Handles shopping guidance, product selection, and general product questions.
+- Does not have a live product catalogue or inventory connection yet.
+- Must not invent current prices, discounts, stock, or branch availability.
+
+### Delivery Assistant
+
+- Handles food, meals, menus, delivery, pickup, and food-ordering guidance.
+- Food nutrition questions (for example, calories in a dish) use a dedicated web-search integration. Results are shown with source links and are explicitly estimates; values depend on portion size and preparation.
+- If nutrition search is unavailable or returns no usable results, the API reports that instead of generating nutrition numbers.
+- Live restaurant, menu, order, delivery-fee, and availability data are not connected yet. The assistant must not invent these facts.
+
+The nutrition search uses DuckDuckGo's lightweight public HTML search endpoint. It requires outbound internet access from the API server. Search snippets are indicative and should be checked against the linked source; this is not a clinical nutrition database.
 
 ## Requirements
 
@@ -81,20 +97,29 @@ Delivery:
 }
 ```
 
+Nutrition lookup:
+
+```json
+{
+  "message": "How many calories are in a serving of chicken shawarma?",
+  "history": []
+}
+```
+
 A follow-up request can send the previous user/assistant messages in `history`. Keep the history relevant and do not send more than 12 messages.
 
-## Important design rules
+## Design rules
 
 1. The frontend calls the relevant assistant service; it does not call Ollama or business data sources directly.
 2. Store and Delivery must not share business tools or data access implicitly.
 3. LLM output is not a source of truth for product prices, stock, restaurant availability, delivery fees, or order status.
-4. Only trusted service integrations can supply factual catalogue, restaurant, and order data.
+4. External factual lookups must use a dedicated integration and show where the information came from.
 5. Never commit `.env`, credentials, or private user data.
 
-## Next milestones
+## Tests
 
-1. Connect Store chat to the existing semantic-search engine and validate results against trusted product data.
-2. Add Store-specific tools for product and branch questions.
-3. Implement Delivery restaurant/menu retrieval and its project-specific tools.
-4. Add tests with mocked Ollama and mocked business integrations.
-5. Integrate a frontend only after the service contracts are stable.
+Run the automated tests from the repository root:
+
+```powershell
+python -m pytest -v
+```
