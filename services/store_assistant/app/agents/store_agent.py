@@ -36,6 +36,23 @@ _STORE_TERMS = (
 _GREETING_ONLY = {"hi", "hello", "hey", "مرحبا", "أهلا", "اهلا", "السلام عليكم"}
 
 
+_LIVE_STORE_DATA_TERMS = (
+    "available products", "products available", "show products", "list products",
+    "product catalogue", "product catalog", "in stock", "stock availability",
+    "how much does", "what is the price", "current price", "product price",
+    "available in", "is it available", "price of", "كم سعر", "قديش سعر",
+    "السعر الحالي", "متوفر", "متاحة", "متاح", "المخزون", "كمية المخزون",
+    "المنتجات المتاحة", "عرض المنتجات", "قائمة المنتجات", "سعر المنتج",
+    "أسعار المنتجات", "بأي فرع", "بأي فروع",
+)
+
+
+def is_live_store_data_query(message: str) -> bool:
+    """Detect questions that require the not-yet-connected store backend."""
+    normalized = message.casefold().strip()
+    return any(term in normalized for term in _LIVE_STORE_DATA_TERMS)
+
+
 def is_store_related(message: str) -> bool:
     """Conservative keyword gate; ambiguous and unrelated requests are rejected."""
     normalized = message.casefold().strip()
