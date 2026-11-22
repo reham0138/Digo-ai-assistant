@@ -2,7 +2,10 @@
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from services.store_assistant.app.agents.store_agent import STORE_SYSTEM_PROMPT
+from services.store_assistant.app.agents.store_agent import (
+    STORE_SYSTEM_PROMPT,
+    is_store_related,
+)
 from services.store_assistant.app.config import settings
 from services.store_assistant.app.schemas.chat import StoreChatRequest, StoreChatResponse
 from shared.ai_core.llm.ollama_client import OllamaClient
@@ -10,9 +13,18 @@ from shared.ai_core.runtime import AssistantRuntime
 
 router = APIRouter()
 
+OUT_OF_SCOPE_REPLY = (
+    "I'm the store shopping assistant. I can help with products, product "
+    "selection, prices, stock, branches, and store orders. I can't help with "
+    "that topic, but feel free to ask me a store-related question."
+)
+
 
 @router.post("/chat", response_model=StoreChatResponse)
 async def chat(request: StoreChatRequest) -> StoreChatResponse:
+    if not is_store_related(request.message):
+        return StoreChatResponse(message=OUT_OF_SCOPE_REPLY)
+
     client = OllamaClient(
         base_url=settings.ollama_base_url,
         model=settings.ollama_model,
