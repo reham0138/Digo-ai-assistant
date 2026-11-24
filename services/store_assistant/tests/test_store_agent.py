@@ -78,7 +78,7 @@ def _assert_message_reaches_model(message, monkeypatch):
 
 
 def test_system_prompt_distinguishes_advice_from_live_store_facts():
-    prompt = STORE_SYSTEM_PROMPT.casefold()
+    prompt = " ".join(STORE_SYSTEM_PROMPT.casefold().split())
 
     assert "general product education is in scope" in prompt
     assert "require live store data" in prompt
