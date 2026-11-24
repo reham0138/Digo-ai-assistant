@@ -55,20 +55,46 @@ class ToolRegistry:
             for name, item in self._tools.items()
         ]
 
+    @staticmethod
+    def _validate_arguments(schema: dict[str, Any], arguments: dict[str, Any]) -> None:
+        properties = schema.get("properties", {})
+        allowed = set(properties)
+        required = set(schema.get("required", []))
+        if schema.get("additionalProperties") is False and set(arguments) - allowed:
+            raise ValueError("Tool arguments contain unsupported fields.")
+        if required - set(arguments):
+            raise ValueError("Tool arguments are missing required fields.")
+
+        expected_types = {
+            "string": str,
+            "integer": int,
+            "number": (int, float),
+            "boolean": bool,
+            "object": dict,
+            "array": list,
+        }
+        for key, value in arguments.items():
+            property_schema = properties.get(key, {})
+            expected = expected_types.get(property_schema.get("type"))
+            if expected and (not isinstance(value, expected) or (
+                expected is int and isinstance(value, bool)
+            )):
+                raise ValueError(f"Tool argument '{key}' has an invalid type.")
+            if isinstance(value, str):
+                minimum = property_schema.get("minLength")
+                maximum = property_schema.get("maxLength")
+                if minimum is not None and len(value) < minimum:
+                    raise ValueError(f"Tool argument '{key}' is too short.")
+                if maximum is not None and len(value) > maximum:
+                    raise ValueError(f"Tool argument '{key}' is too long.")
+
     async def execute(self, name: str, arguments: dict[str, Any]) -> str:
         if not isinstance(arguments, dict):
             raise ValueError("Tool arguments must be a JSON object.")
         item = self._tools.get(name)
         if item is None:
             raise KeyError(f"Unknown tool: {name}")
-
-        schema = item["parameters"]
-        allowed = set(schema.get("properties", {}))
-        required = set(schema.get("required", []))
-        if schema.get("additionalProperties") is False and set(arguments) - allowed:
-            raise ValueError("Tool arguments contain unsupported fields.")
-        if required - set(arguments):
-            raise ValueError("Tool arguments are missing required fields.")
+        self._validate_arguments(item["parameters"], arguments)
 
         result = item["handler"](**arguments)
         if inspect.isawaitable(result):
