@@ -100,7 +100,10 @@ class AssistantRuntime:
         if not isinstance(plan, dict) or plan.get("action") not in {"respond", "use_tool"}:
             raise RuntimeError("Ollama returned an unsupported assistant action.")
         if plan["action"] == "respond":
-            return validate_text_response(plan.get("response"))
+            try:
+                return validate_text_response(plan.get("response"))
+            except ValueError as exc:
+                raise RuntimeError("Ollama returned an empty assistant response.") from exc
 
         tool_name = plan.get("tool_name")
         arguments = plan.get("arguments")
