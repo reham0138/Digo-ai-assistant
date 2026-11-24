@@ -17,6 +17,8 @@ def test_delivery_prompt_uses_semantic_tool_selection_policy():
     assert "understand the meaning and intent" in prompt
     assert "fixed keyword lists to decide whether a request belongs" in prompt
     assert "nutrition_search tool" in prompt
+    assert "MUST select nutrition_search" in prompt
+    assert "Do NOT answer these questions from model knowledge" in prompt
 
 
 def test_nutrition_search_is_registered_as_a_delivery_tool():
@@ -28,6 +30,8 @@ def test_nutrition_search_is_registered_as_a_delivery_tool():
     assert definition["name"] == "nutrition_search"
     assert definition["parameters"]["required"] == ["query"]
     assert definition["parameters"]["additionalProperties"] is False
+    assert "REQUIRED" in definition["description"]
+    assert "Arabic or English" in definition["description"]
 
 
 def test_nutrition_search_tool_executes_and_formats_sources(monkeypatch):
