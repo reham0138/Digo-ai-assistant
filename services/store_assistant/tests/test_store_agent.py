@@ -82,6 +82,6 @@ def test_system_prompt_distinguishes_advice_from_live_store_facts():
 
     assert "general product education is in scope" in prompt
     assert "require live store data" in prompt
-    assert "do not invent product names, prices, discounts, stock" in prompt
+    assert "never invent product names, prices, discounts, stock" in prompt
     assert "live store data is not connected yet" in prompt
     assert "outside this scope" in prompt
