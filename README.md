@@ -10,6 +10,17 @@ A local-first starter with one reusable AI core and independently runnable Store
 
 Both services can use the same local Ollama server. Their prompts, routes, and business integrations remain separate.
 
+## Intent understanding and tool execution
+
+The runtime does not use fixed keyword lists to route user requests. When a service has registered tools, the model receives the user's message, the service policy, and the descriptions/schemas of only those tools. Ollama returns a JSON action plan constrained by a JSON schema:
+
+- `respond`: return the model's direct answer.
+- `use_tool`: validate the selected tool name and arguments, then execute only that registered handler.
+
+This is application-level tool selection using structured output; it does not depend on native model tool-calling support. Tool results are returned by their handler, so integrations must format and attribute retrieved facts themselves. The runtime does not let the model generate SQL or execute arbitrary code.
+
+When no tools are registered, the runtime keeps the ordinary text-generation path.
+
 ## Current capabilities and limits
 
 Both services expose:
@@ -23,11 +34,13 @@ The chat runtime accepts a bounded history supplied by the caller (up to 12 mess
 - Handles shopping guidance, product selection, and general product questions.
 - Does not have a live product catalogue or inventory connection yet.
 - Must not invent current prices, discounts, stock, or branch availability.
+- No store data tools are registered until a trusted store backend and its schema are available.
 
 ### Delivery Assistant
 
 - Handles food, meals, menus, delivery, pickup, and food-ordering guidance.
-- Food nutrition questions (for example, calories in a dish) use a dedicated web-search integration. Results are shown with source links and are explicitly estimates; values depend on portion size and preparation.
+- The model selects the registered `nutrition_search` tool for nutrition questions based on intent, not a fixed list of phrases.
+- Nutrition search results are shown with source links and are explicitly estimates; values depend on portion size and preparation.
 - If nutrition search is unavailable or returns no usable results, the API reports that instead of generating nutrition numbers.
 - Live restaurant, menu, order, delivery-fee, and availability data are not connected yet. The assistant must not invent these facts.
 
