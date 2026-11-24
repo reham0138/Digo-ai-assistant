@@ -117,7 +117,9 @@ def test_runtime_rejects_unregistered_tool():
         "tool_name": "delete_everything",
         "arguments": {},
     }))
-    runtime = AssistantRuntime(client, "Assistant.", tools=ToolRegistry())
+    tools = ToolRegistry()
+    tools.register("safe_lookup", lambda: "safe result")
+    runtime = AssistantRuntime(client, "Assistant.", tools=tools)
 
     with pytest.raises(RuntimeError, match="rejected"):
         run(runtime.respond("Do something"))
