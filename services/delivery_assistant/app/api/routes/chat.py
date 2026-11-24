@@ -50,9 +50,14 @@ def _build_tools() -> ToolRegistry:
         "nutrition_search",
         nutrition_search,
         description=(
-            "Search the web for nutrition facts and calories for a named food or "
-            "dish. Use for nutrition questions only. Returns attributed search "
-            "snippets and source URLs; values are estimates."
+            "REQUIRED for any request asking for calories, energy, macros, "
+            "protein, carbohydrates, fat, or nutritional facts about a named "
+            "food, ingredient, meal, or dish. Interpret paraphrases and Arabic "
+            "or English requests semantically; do not require exact wording. "
+            "Examples: 'calories in chicken shawarma', 'is hummus high in "
+            "protein?', or 'what are the macros in this meal?'. Search the web "
+            "and return attributed snippets with source URLs. Do not use for "
+            "general explanations of nutrients."
         ),
         parameters={
             "type": "object",
