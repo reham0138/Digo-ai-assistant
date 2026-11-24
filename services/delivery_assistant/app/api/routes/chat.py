@@ -2,12 +2,7 @@
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from services.delivery_assistant.app.agents.delivery_agent import (
-    DELIVERY_SYSTEM_PROMPT,
-    is_delivery_related,
-    is_live_delivery_data_query,
-    is_nutrition_query,
-)
+from services.delivery_assistant.app.agents.delivery_agent import DELIVERY_SYSTEM_PROMPT
 from services.delivery_assistant.app.config import settings
 from services.delivery_assistant.app.integrations.nutrition_search import (
     NutritionSearch,
@@ -16,19 +11,9 @@ from services.delivery_assistant.app.integrations.nutrition_search import (
 from services.delivery_assistant.app.schemas.chat import DeliveryChatRequest, DeliveryChatResponse
 from shared.ai_core.llm.ollama_client import OllamaClient
 from shared.ai_core.runtime import AssistantRuntime
+from shared.ai_core.tools.tool_registry import ToolRegistry
 
 router = APIRouter()
-
-OUT_OF_SCOPE_REPLY = (
-    "I'm the food ordering and delivery assistant. I can help with restaurants, "
-    "meals, menus, delivery, pickup, food orders, and food nutrition questions."
-)
-
-LIVE_DELIVERY_DATA_UNAVAILABLE_REPLY = (
-    "I can't check live restaurant listings, menus, prices, delivery fees, "
-    "or order status yet because the delivery backend is not connected. "
-    "I won't guess or make up that information."
-)
 
 NO_NUTRITION_RESULTS_REPLY = (
     "I couldn't find reliable web results for that food's nutrition information. "
@@ -52,40 +37,53 @@ def _format_nutrition_results(food_query: str, results: list[dict[str, str]]) ->
     return "\n\n".join(lines)
 
 
+def _build_tools() -> ToolRegistry:
+    tools = ToolRegistry()
+
+    async def nutrition_search(query: str) -> str:
+        results = await NutritionSearch().search(query)
+        if not results:
+            return NO_NUTRITION_RESULTS_REPLY
+        return _format_nutrition_results(query, results)
+
+    tools.register(
+        "nutrition_search",
+        nutrition_search,
+        description=(
+            "Search the web for nutrition facts and calories for a named food or "
+            "dish. Use for nutrition questions only. Returns attributed search "
+            "snippets and source URLs; values are estimates."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {"query": {"type": "string", "minLength": 2}},
+            "required": ["query"],
+            "additionalProperties": False,
+        },
+    )
+    return tools
+
+
 @router.post("/chat", response_model=DeliveryChatResponse)
 async def chat(request: DeliveryChatRequest) -> DeliveryChatResponse:
-    if not is_delivery_related(request.message):
-        return DeliveryChatResponse(message=OUT_OF_SCOPE_REPLY)
-
-    # Nutrition facts are fetched from the web and returned with their sources.
-    # The LLM is deliberately bypassed so it cannot invent numeric values.
-    if is_nutrition_query(request.message):
-        try:
-            results = await NutritionSearch().search(request.message)
-        except NutritionSearchError as exc:
-            raise HTTPException(
-                status_code=503,
-                detail="Nutrition web search is temporarily unavailable.",
-            ) from exc
-
-        if not results:
-            return DeliveryChatResponse(message=NO_NUTRITION_RESULTS_REPLY)
-        return DeliveryChatResponse(
-            message=_format_nutrition_results(request.message, results)
-        )
-
-    if is_live_delivery_data_query(request.message):
-        return DeliveryChatResponse(message=LIVE_DELIVERY_DATA_UNAVAILABLE_REPLY)
-
     client = OllamaClient(
         base_url=settings.ollama_base_url,
         model=settings.ollama_model,
         timeout_seconds=settings.ollama_timeout_seconds,
     )
-    runtime = AssistantRuntime(client, DELIVERY_SYSTEM_PROMPT)
+    runtime = AssistantRuntime(
+        client,
+        DELIVERY_SYSTEM_PROMPT,
+        tools=_build_tools(),
+    )
 
     try:
         answer = await runtime.respond(request.message, request.history)
+    except NutritionSearchError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Nutrition web search is temporarily unavailable.",
+        ) from exc
     except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=503,
