@@ -15,7 +15,7 @@ def test_delivery_prompt_uses_semantic_tool_selection_policy():
     prompt = DELIVERY_SYSTEM_PROMPT.lower()
 
     assert "understand the meaning and intent" in prompt
-    assert "do not use fixed keyword lists" in prompt
+    assert "fixed keyword lists to decide whether a request belongs" in prompt
     assert "nutrition_search tool" in prompt
 
 
