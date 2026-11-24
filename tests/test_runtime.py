@@ -3,7 +3,7 @@ import json
 import pytest
 
 from shared.ai_core.conversation.models import ChatMessage
-from shared.ai_core.runtime import AssistantRuntime
+from shared.ai_core.runtime import AssistantRuntime, _build_plan_schema
 from shared.ai_core.tools.tool_registry import ToolRegistry
 
 
@@ -123,3 +123,12 @@ def test_runtime_rejects_unregistered_tool():
 
     with pytest.raises(RuntimeError, match="rejected"):
         run(runtime.respond("Do something"))
+
+
+
+def test_action_schema_restricts_tool_names_to_registered_tools():
+    schema = _build_plan_schema(("nutrition_search", "lookup_stock"))
+
+    assert schema["properties"]["tool_name"]["enum"] == [
+        "", "nutrition_search", "lookup_stock"
+    ]
