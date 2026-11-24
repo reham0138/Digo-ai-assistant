@@ -1,27 +1,67 @@
+import asyncio
+
+import pytest
+
 from services.delivery_assistant.app.agents.delivery_agent import (
-    is_delivery_related,
-    is_live_delivery_data_query,
-    is_nutrition_query,
+    DELIVERY_SYSTEM_PROMPT,
 )
+from services.delivery_assistant.app.api.routes import chat as chat_module
 from services.delivery_assistant.app.integrations.nutrition_search import (
     _DuckDuckGoLiteParser,
 )
 
 
-def test_nutrition_queries_are_in_delivery_scope():
-    assert is_nutrition_query("How many calories are in shawarma?")
-    assert is_nutrition_query("كم سعرة حرارية في الفلافل؟")
-    assert is_delivery_related("calories in a cheeseburger")
+def test_delivery_prompt_uses_semantic_tool_selection_policy():
+    prompt = DELIVERY_SYSTEM_PROMPT.lower()
+
+    assert "understand the meaning and intent" in prompt
+    assert "do not use fixed keyword lists" in prompt
+    assert "nutrition_search tool" in prompt
 
 
-def test_live_restaurant_queries_are_not_sent_to_the_llm():
-    assert is_live_delivery_data_query("what restaurants are available?")
-    assert is_live_delivery_data_query("what the restaurants available in the website")
-    assert is_live_delivery_data_query("شو المطاعم الموجودة؟")
+def test_nutrition_search_is_registered_as_a_delivery_tool():
+    tools = chat_module._build_tools()
+
+    assert "nutrition_search" in tools.names
+
+    definition = tools.definitions()[0]
+    assert definition["name"] == "nutrition_search"
+    assert definition["parameters"]["required"] == ["query"]
+    assert definition["parameters"]["additionalProperties"] is False
 
 
-def test_unrelated_queries_remain_out_of_scope():
-    assert not is_delivery_related("Explain how neural networks work")
+def test_nutrition_search_tool_executes_and_formats_sources(monkeypatch):
+    class FakeNutritionSearch:
+        async def search(self, query: str) -> list[dict[str, str]]:
+            assert query == "chicken shawarma"
+            return [{
+                "title": "Chicken shawarma nutrition",
+                "snippet": "About 400 calories per serving.",
+                "url": "https://example.com/shawarma",
+            }]
+
+    monkeypatch.setattr(chat_module, "NutritionSearch", FakeNutritionSearch)
+    tools = chat_module._build_tools()
+
+    result = asyncio.run(
+        tools.execute("nutrition_search", {"query": "chicken shawarma"})
+    )
+
+    assert "About 400 calories per serving." in result
+    assert "https://example.com/shawarma" in result
+    assert "estimates" in result.lower()
+
+
+def test_nutrition_search_rejects_invalid_arguments():
+    tools = chat_module._build_tools()
+
+    with pytest.raises(ValueError):
+        asyncio.run(
+            tools.execute(
+                "nutrition_search",
+                {"query": "chicken shawarma", "unexpected": True},
+            )
+        )
 
 
 def test_search_parser_extracts_title_snippet_and_source():
